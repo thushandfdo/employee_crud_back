@@ -12,8 +12,8 @@ using employee_crud.Data;
 namespace employee_crud.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20240121095057_DepartmentEntity")]
-    partial class DepartmentEntity
+    [Migration("20240121111404_AddEmployeeEntity")]
+    partial class AddEmployeeEntity
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
