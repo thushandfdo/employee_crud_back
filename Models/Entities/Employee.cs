@@ -35,10 +35,9 @@ namespace employee_crud.Models.Entities
 
         [Column("department_id")]
         [DisplayName("Department ID")]
+        [ForeignKey("Department")]
         public required int DepartmentId { get; set; }
 
-        [ForeignKey(nameof(DepartmentId))]
-        [DisplayName("Department")]
-        public required Employee Department { get; set; }
+        public Department? Department { get; set; }
     }
 }

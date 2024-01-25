@@ -8,7 +8,7 @@ namespace employee_crud.Models.Validations
         {
             if (value is not double salary) return new ValidationResult("Salary type must be double");
 
-            return salary >= lowerLimit ? ValidationResult.Success : new ValidationResult($"Salary must be greater than {lowerLimit}");
+            return salary >= lowerLimit ? ValidationResult.Success : new ValidationResult($"Salary must be greater than or equal to {lowerLimit}");
         }
     }
 }

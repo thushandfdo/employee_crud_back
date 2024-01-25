@@ -90,7 +90,7 @@ namespace employee_crud.Migrations
 
             modelBuilder.Entity("employee_crud.Models.Entities.Employee", b =>
                 {
-                    b.HasOne("employee_crud.Models.Entities.Employee", "Department")
+                    b.HasOne("employee_crud.Models.Entities.Department", "Department")
                         .WithMany()
                         .HasForeignKey("DepartmentId")
                         .OnDelete(DeleteBehavior.Cascade)

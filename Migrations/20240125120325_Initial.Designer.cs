@@ -12,8 +12,8 @@ using employee_crud.Data;
 namespace employee_crud.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20240121111404_AddEmployeeEntity")]
-    partial class AddEmployeeEntity
+    [Migration("20240125120325_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -93,7 +93,7 @@ namespace employee_crud.Migrations
 
             modelBuilder.Entity("employee_crud.Models.Entities.Employee", b =>
                 {
-                    b.HasOne("employee_crud.Models.Entities.Employee", "Department")
+                    b.HasOne("employee_crud.Models.Entities.Department", "Department")
                         .WithMany()
                         .HasForeignKey("DepartmentId")
                         .OnDelete(DeleteBehavior.Cascade)

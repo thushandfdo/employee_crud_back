@@ -5,8 +5,8 @@ namespace employee_crud.Data
 {
     public class DataContext(DbContextOptions<DataContext> options) : DbContext(options)
     {
-        public DbSet<Employee>? Employees { get; set; }
+        public required DbSet<Employee> Employees { get; set; }
 
-        public DbSet<Department>? Departments { get; set; }
+        public required DbSet<Department> Departments { get; set; }
     }
 }
