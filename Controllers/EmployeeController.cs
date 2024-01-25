@@ -1,22 +1,30 @@
-﻿using employee_crud.Exceptions;
-using employee_crud.Interfaces.Services;
+﻿using employee_crud.Data;
+using employee_crud.Exceptions;
 using employee_crud.Models.Entities;
-using employee_crud.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace employee_crud.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class EmployeeController(IEmployeeService employeeService) : ControllerBase
+    public class EmployeeController(DataContext dataContext) : ControllerBase
     {
+        private DbSet<Employee> Employees { get; set; } = dataContext.Employees;
+
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetEmployeeById(int id)
         {
             try
             {
-                var employee = await employeeService.GetEmployeeById(id);
-                return Ok(employee);
+                if (id <= 0)
+                {
+                    throw new InvalidArgumentException("Id must be greater than 0");
+                }
+
+                var employee = await Employees.FindAsync(id);
+
+                return Ok(employee) ?? throw new NotFoundException($"Employee with id {id} not found");
             }
             catch (NotFoundException ex)
             {
@@ -34,7 +42,7 @@ namespace employee_crud.Controllers
         {
             try
             {
-                var employees = await employeeService.GetEmployees();
+                var employees = await Employees.Include("Department").ToListAsync();
                 return Ok(employees);
             }
             catch (Exception ex)
@@ -45,12 +53,17 @@ namespace employee_crud.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> InsertEmployee(Employee employee)
+        public async Task<IActionResult> InsertEmployee(Employee newEmployee)
         {
             try
             {
-                var insertedEmployee = await employeeService.InsertEmployee(employee);
-                return Ok(insertedEmployee);
+                Employees.Add(newEmployee);
+                await dataContext.SaveChangesAsync();
+
+                var insertedEmployee = await Employees.FirstOrDefaultAsync(employee => employee.FirstName == newEmployee.FirstName);
+
+                return Ok(insertedEmployee) ??
+                       throw new NotFoundException($"Employee with name {newEmployee.FirstName} not found");
             }
             catch (NotFoundException ex)
             {
@@ -58,14 +71,13 @@ namespace employee_crud.Controllers
             }
             catch (Exception ex)
             {
-                //Console.WriteLine(ex);
-                //return StatusCode(500);
-                throw;
+                Console.WriteLine(ex);
+                return StatusCode(500);
             }
         }
 
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> UpdateEmployee(Employee employee, int id)
+        public async Task<IActionResult> UpdateEmployee(Employee newEmployee, int id)
         {
             try
             {
@@ -74,13 +86,21 @@ namespace employee_crud.Controllers
                     return BadRequest("Id must be greater than 0");
                 }
 
-                if (employee.Id != id)
+                if (newEmployee.Id != id)
                 {
                     return BadRequest("Id in body must match id in route");
                 }
 
-                var updatedEmployee = await employeeService.UpdateEmployee(employee);
-                return Ok(updatedEmployee);
+                var employeeToUpdate =
+                    await Employees.FindAsync(newEmployee.Id) ??
+                    throw new NotFoundException($"Employee with id {newEmployee.Id} not found");
+
+                employeeToUpdate.FirstName = newEmployee.FirstName == "" ? employeeToUpdate.FirstName : newEmployee.FirstName;
+
+                Employees.Update(employeeToUpdate);
+                await dataContext.SaveChangesAsync();
+
+                return Ok(employeeToUpdate);
             }
             catch (NotFoundException ex)
             {
@@ -103,8 +123,14 @@ namespace employee_crud.Controllers
                     return BadRequest("Id must be greater than 0");
                 }
 
-                var deletedEmployee = await employeeService.DeleteEmployee(id);
-                return Ok(deletedEmployee);
+                var employeeToDelete =
+                    await Employees.FindAsync(id) ??
+                    throw new NotFoundException($"Employee with id {id} not found");
+
+                Employees.Remove(employeeToDelete);
+                await dataContext.SaveChangesAsync();
+
+                return Ok(employeeToDelete);
             }
             catch (InvalidArgumentException ex)
             {

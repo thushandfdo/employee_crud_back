@@ -1,21 +1,30 @@
-﻿using employee_crud.Exceptions;
-using employee_crud.Interfaces.Services;
+﻿using employee_crud.Data;
+using employee_crud.Exceptions;
 using employee_crud.Models.Entities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace employee_crud.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class DepartmentController(IDepartmentService departmentService) : ControllerBase
+    public class DepartmentController(DataContext dataContext) : ControllerBase
     {
+        private DbSet<Department> Departments { get; set; } = dataContext.Departments;
+
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetDepartmentById(int id)
         {
             try
             {
-                var department = await departmentService.GetDepartmentById(id);
-                return Ok(department);
+                if (id <= 0)
+                {
+                    throw new InvalidArgumentException("Id must be greater than 0");
+                }
+
+                var department = await Departments.FindAsync(id);
+
+                return Ok(department) ?? throw new NotFoundException($"Department with id {id} not found");
             }
             catch (NotFoundException ex)
             {
@@ -33,7 +42,7 @@ namespace employee_crud.Controllers
         {
             try
             {
-                var departments = await departmentService.GetDepartments();
+                var departments = await Departments.ToListAsync();
                 return Ok(departments);
             }
             catch (Exception ex)
@@ -44,12 +53,17 @@ namespace employee_crud.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> InsertDepartment(Department department)
+        public async Task<IActionResult> InsertDepartment(Department newDepartment)
         {
             try
             {
-                var insertedDepartment = await departmentService.InsertDepartment(department);
-                return Ok(insertedDepartment);
+                Departments.Add(newDepartment);
+                await dataContext.SaveChangesAsync();
+
+                var insertedDepartment = await Departments.FirstOrDefaultAsync(department => department.Name == newDepartment.Name);
+
+                return Ok(insertedDepartment) ??
+                       throw new NotFoundException($"Department with name {newDepartment.Name} not found");
             }
             catch (NotFoundException ex)
             {
@@ -63,7 +77,7 @@ namespace employee_crud.Controllers
         }
 
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> UpdateDepartment(Department department, int id)
+        public async Task<IActionResult> UpdateDepartment(Department newDepartment, int id)
         {
             try
             {
@@ -72,13 +86,21 @@ namespace employee_crud.Controllers
                     return BadRequest("Id must be greater than 0");
                 }
 
-                if (department.Id != id)
+                if (newDepartment.Id != id)
                 {
                     return BadRequest("Id in body must match id in route");
                 }
 
-                var updatedDepartment = await departmentService.UpdateDepartment(department);
-                return Ok(updatedDepartment);
+                var departmentToUpdate =
+                    await Departments.FindAsync(newDepartment.Id) ??
+                    throw new NotFoundException($"Department with id {newDepartment.Id} not found");
+
+                departmentToUpdate.Name = newDepartment.Name == "" ? departmentToUpdate.Name : newDepartment.Name;
+
+                Departments.Update(departmentToUpdate);
+                await dataContext.SaveChangesAsync();
+
+                return Ok(departmentToUpdate);
             }
             catch (NotFoundException ex)
             {
@@ -101,8 +123,14 @@ namespace employee_crud.Controllers
                     return BadRequest("Id must be greater than 0");
                 }
 
-                var deletedDepartment = await departmentService.DeleteDepartment(id);
-                return Ok(deletedDepartment);
+                var departmentToDelete =
+                    await Departments.FindAsync(id) ??
+                    throw new NotFoundException($"Department with id {id} not found");
+
+                Departments.Remove(departmentToDelete);
+                await dataContext.SaveChangesAsync();
+
+                return Ok(departmentToDelete);
             }
             catch (InvalidArgumentException ex)
             {
